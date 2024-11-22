@@ -1,0 +1,397 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 28 12:36:21 2024
+
+@author: Emma
+"""
+import os
+import tkinter as tk
+from tkinter import messagebox
+
+
+    
+# represents a playlist 
+class Playlist:
+    def __init__(self, title):
+        self.title = title # title of playlist
+        self.songs = [] # empty list of songs upon initialization
+        
+    # adds the given song at the end of the playlist's list of songs
+    def add_song(self, song):
+        self.songs.append(song)
+    
+    # deletes the given song from the playlist
+    def delete_song(self, deleteSong):
+        self.songs.remove(deleteSong)
+                
+        
+        
+# represents a playlist manager application with a song library
+# of all songs in the application
+class Playlist_Manager:
+    directory_title = "Playlist_Manager_Data"
+    
+    def __init__(self):
+        self.songLib = []
+        self.playlists = []
+        self.currentPl = None
+    
+    # adds a song to the song library
+    def add_to_song_library(self, song):
+        self.songLib.append(song)
+        
+    # creates a playlist and adds it to playlists
+    def create_playlist(self, title):
+        pl = Playlist(title)
+        self.playlists.append(pl)
+    
+    # deletes the given playlist from playlists
+    def delete_playlist(self):
+        self.playlists.remove(self.currentPl)
+        
+    # adds the given song the given playlist
+    def add_song_to_playlist(self, song):
+        self.currentPl.add_song(song)
+        
+    # deletes the given song from the given playlist
+    def delete_song_from_playlist(self, song):
+        self.currentPl.delete_song(song)
+    
+    # sets the current playlist
+    def set_playlist(self, playlist):
+        self.currentPl = playlist
+           
+    # saves the current instance of the playlist manager to text files in desktop directory
+    def save(self):
+        # create list of data for song library
+        song_library_data = []
+        for song in self.songLib:
+            song_data = song + "\n"
+            song_library_data.append(song_data)
+            
+        # create list of data for playlist library
+        playlist_library_data = []
+        for playlist in self.playlists:
+            pl_data = playlist.title
+            for song in playlist.songs:
+                pl_data = pl_data + "#" + song
+            pl_data = pl_data + "\n"
+            playlist_library_data.append(pl_data)
+        
+        # get path to desktop
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+
+        # get directory path to playlist manager data
+        data_path = os.path.join(desktop_path, self.directory_title)
+
+        # Check if the directory already exists
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+            
+        # write song library data to file
+        song_library_path = os.path.join(data_path, "SongLibrary.txt")
+        with open(song_library_path, "w") as file:
+            file.writelines(song_library_data)
+            file.close()
+            
+        
+        # write playlist library data to file
+        playlist_library_path = os.path.join(data_path, "PlaylistLibrary.txt")
+        with open(playlist_library_path, "w") as file:
+            file.writelines(playlist_library_data)
+            file.close()
+      
+    # loads previous data from playlist manager if it exists
+    def load(self):
+        # get path to desktop
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+
+        # get directory path to playlist manager data
+        data_path = os.path.join(desktop_path, self.directory_title)
+        
+        # get song library directory path
+        song_library_path = os.path.join(data_path, "SongLibrary.txt")
+        
+        # get playlist library directory path
+        playlist_library_path = os.path.join(data_path, "PlaylistLibrary.txt")
+
+        # if directory and files exist, load data
+        if os.path.exists(song_library_path) and os.path.exists(playlist_library_path):
+            # read contents of song library path file
+            with open(song_library_path, "r+") as file:
+                song_library_data = file.readlines()
+                file.close()
+                
+            # read contents of playlist library path file
+            with open(playlist_library_path, "r+") as file:
+                playlist_library_data = file.readlines()
+                file.close()
+            
+            # populate song library data
+            for song_data in song_library_data:
+                song = song_data[:-1]
+                self.songLib.append(song)
+                
+            # populate playlist library data
+            for playlist_data in playlist_library_data:
+                playlist_data = playlist_data[:-1]
+                pl = playlist_data.split("#")
+                i = 0
+                length = len(pl)
+                # populate individual playlist data
+                while (i < length):
+                    if i == 0:
+                        self.create_playlist(pl[i])
+                        self.set_playlist(self.playlists[-1])
+                    else:
+                        self.add_song_to_playlist(pl[i])
+                    i+=1
+        
+        
+
+        
+            
+    
+    
+    
+# create playlist manager applicaton as global variable
+global manager
+manager = Playlist_Manager()
+
+# load any data from previous saves
+manager.load()
+
+# pulls up the song library window
+def pu_song_library():
+    # window for song library
+    songlib = tk.Toplevel(pm)
+    songlib.resizable(False, False)
+    sl_menu = tk.Canvas(songlib, width=300, height=400)
+    sl_menu.pack()
+    
+    # list box configs
+    songs = tk.Listbox(sl_menu, font=('Arial 15'))
+    songs.place(x=30, y=60)
+    scrollbar = tk.Scrollbar(sl_menu) 
+    scrollbar.place(x=255, y=60) 
+    for song in manager.songLib:
+        songs.insert("end", song) 
+    songs.config(yscrollcommand = scrollbar.set) 
+    scrollbar.config(command = songs.yview)
+
+
+    # song library labels
+    sl_menu.create_rectangle(0, 0, 300, 400, outline = "LightSteelBlue4", fill="LightSteelBlue3", width = 2)
+    sl_menu.create_rectangle(0, 0, 300, 50, outline = "LightSteelBlue4", fill="LightSteelBlue4", width = 2)
+    sl_title = tk.Label(songlib, text ="Song Library", bg="LightSteelBlue4", font= ('Arial 18 bold'))
+    sl_title.place(x=4,y=10)
+
+    # add song button
+    add_song_b = tk.Button(sl_menu, text ="Add Song", bg="LightSteelBlue4",
+                           font= ('Arial 15'), command = lambda: enter_song(True))
+    add_song_b.place(x=100,y=325)
+    
+# pulls up the playlist library window
+def pu_playlist_library():
+    # window for playlist library
+    playlib = tk.Toplevel(pm)
+    playlib.resizable(False, False)
+    pl_menu = tk.Canvas(playlib, width=300, height=400)
+    pl_menu.pack()
+
+    # list box configs
+    pls = tk.Listbox(pl_menu, font=('Arial 15'))
+    pls.place(x=30, y=60)
+    scrollbar2 = tk.Scrollbar(pl_menu) 
+    scrollbar2.place(x=255, y=60) 
+    for playlist in manager.playlists:
+        pl_title = playlist.title
+        pls.insert("end", pl_title) 
+    pls.config(yscrollcommand = scrollbar2.set) 
+    scrollbar2.config(command = pls.yview)
+
+    # playlist library labels
+    pl_menu.create_rectangle(0, 0, 300, 400, outline = "LightSteelBlue4", fill="LightSteelBlue3", width = 2)
+    pl_menu.create_rectangle(0, 0, 300, 50, outline = "LightSteelBlue4", fill="LightSteelBlue4", width = 2)
+    pl_title = tk.Label(playlib, text ="Playlist Library", bg="LightSteelBlue4", font= ('Arial 18 bold'))
+    pl_title.place(x= 4,y=10)
+    pl_view = pl_title = tk.Label(playlib, text ="Select playlist from list, then click view selection.",
+                                    bg="LightSteelBlue3", font= ('Arial 8'))
+    pl_view.place(x=25,y=345)
+
+    # create playlist button
+    create_pl_b = tk.Button(pl_menu, text ="Create Playlist", bg="LightSteelBlue4",
+                           font= ('Arial 10'), command = enter_playlist)
+    create_pl_b.place(x=95,y=315)
+    
+    def pl_index():
+        for item in pls.curselection():
+            return item
+    
+    # view selection button
+    view_pl_b = tk.Button(pl_menu, text ="View Selection", bg="LightSteelBlue4",
+                           font= ('Arial 10'), command = lambda: pu_playlist(pl_index()))
+    view_pl_b.place(x=95,y=365)
+    
+
+# pulls up a playlist window for the current playlist
+def pu_playlist(i):
+    # window for playlist view
+    manager.currentPl = manager.playlists[i]
+    playlib = tk.Toplevel(pm)
+    playlib.resizable(False, False)
+    pl_menu = tk.Canvas(playlib, width=300, height=400)
+    pl_menu.pack()
+
+    # list box configs
+    pls = tk.Listbox(pl_menu, font=('Arial 15'))
+    pls.place(x=30, y=60)
+    scrollbar2 = tk.Scrollbar(pl_menu) 
+    scrollbar2.place(x=255, y=60) 
+    for song in manager.currentPl.songs: 
+        pls.insert("end", song) 
+    pls.config(yscrollcommand = scrollbar2.set) 
+    scrollbar2.config(command = pls.yview)
+
+    # playlist library labels
+    pl_menu.create_rectangle(0, 0, 300, 400, outline = "LightSteelBlue4", fill="LightSteelBlue3", width = 2)
+    pl_menu.create_rectangle(0, 0, 300, 50, outline = "LightSteelBlue4", fill="LightSteelBlue4", width = 2)
+    title = manager.currentPl.title
+    pl_title = tk.Label(playlib, text = title, bg="LightSteelBlue4", font= ('Arial 18 bold'))
+    pl_title.place(x=4,y=10)
+    
+    
+    pl_view = pl_title = tk.Label(playlib, text ="Select song, then click delete selection to remove.",
+                                    bg="LightSteelBlue3", font= ('Arial 8'))
+    pl_view.place(x=35,y=330)
+
+    # create playlist button
+    create_pl_b = tk.Button(pl_menu, text ="Add Song", bg="LightSteelBlue4",
+                           font= ('Arial 8'), command = lambda: enter_song(False))
+    create_pl_b.place(x=115,y=305)
+    
+    def song_index():
+        for item in pls.curselection():
+            return item
+    
+    # delete selection button
+    delete_b = tk.Button(pl_menu, text ="Delete Selection", bg="LightSteelBlue4",
+                           font= ('Arial 8'), command = lambda: delete_song(song_index()))
+    delete_b.place(x=100, y=350)
+    
+    # delete playlist button
+    delete_pl_b = tk.Button(pl_menu, text ="Delete Playlist", bg="LightSteelBlue4",
+                           font= ('Arial 8'), command = delete_playlist)
+    delete_pl_b.place(x=105,y=375)
+    
+
+# pulls up the song entry window
+def enter_song(addLib):
+    # window song entry
+    entry = tk.Toplevel(pm)
+    entry.resizable(False, False)
+    title_label = tk.Label(entry, text="Enter title:")
+    title_label.grid(column = 1, row = 1)
+    entry_box = tk.Entry(entry, bd =5)
+    entry_box.grid(column = 2, row = 1)
+    if addLib:
+        enter_b = tk.Button(entry, text ="Enter", bg="LightSteelBlue4",
+                               font= ('Arial 10'), command = lambda: add_song_to_lib(entry_box.get()))
+    else:
+        enter_b = tk.Button(entry, text ="Enter", bg="LightSteelBlue4",
+                               font= ('Arial 10'), command = lambda: add_song_to_playlist(entry_box.get()))
+        
+    enter_b.grid(column = 1, row = 2)  
+ 
+# pulls up the playlist title entry window
+def enter_playlist():
+    # window song entry
+    entry = tk.Toplevel(pm)
+    entry.resizable(False, False)
+    title_label = tk.Label(entry, text="Enter title:")
+    title_label.grid(column = 1, row = 1)
+    entry_box = tk.Entry(entry, bd =5)
+    entry_box.grid(column = 2, row = 1)
+    enter_b = tk.Button(entry, text ="Enter", bg="LightSteelBlue4",
+                           font= ('Arial 10'), command = lambda: add_playlist_to_lib(entry_box.get()))
+    enter_b.grid(column = 1, row = 2)
+    
+# adds song to song library and displays message
+def add_song_to_lib(title):
+    manager.add_to_song_library(title)
+    messagebox.showinfo("showinfo", "Song added to library! Refresh song library window.")
+   
+# adds playlist to playlist library and displays message
+def add_playlist_to_lib(title):
+    manager.create_playlist(title)
+    messagebox.showinfo("showinfo", "Playlist added to library! Refresh playlist library window.")
+    
+# adds song to current playlist and displays message
+def add_song_to_playlist(song):
+    manager.add_song_to_playlist(song)
+    message = "Song added to " + manager.currentPl.title + "! Refresh playlist window."
+    messagebox.showinfo("showinfo", message)
+ 
+# deletes songs from current playlist and displays message
+def delete_song(i):
+    song = manager.currentPl.songs[i]
+    manager.delete_song_from_playlist(song)
+    messagebox.showinfo("showinfo", "Song deleted from playlist! Refresh playlist window.")
+   
+# deletes playlist from playlist library and displays message
+def delete_playlist():
+    manager.delete_playlist()
+    message = "Playlist: " + manager.currentPl.title + " deleted from library! Refresh playlist window."
+    messagebox.showinfo("showinfo", message)
+    
+# saves current playlist manager data and displays message
+def save_data():
+    manager.save()
+    message = "Data successfully saved!"
+    messagebox.showinfo("showinfo", message)
+
+
+
+# code for main menu screen and loop to run tkinter UI:
+    
+# main menu window
+pm = tk.Tk(className="playlist manager")
+pm.resizable(False, False)
+main_menu = tk.Canvas(pm, width=300, height=500, bg= "LightSteelBlue3")
+main_menu.pack()
+
+# main menu labels
+mm_title = tk.Label(pm, text ="Playlist Manager", bg="LightSteelBlue3", font= ('Arial 25'))
+mm_title.place(x=4,y=10)
+
+# main menu buttons
+song_lib_b = tk.Button(pm, text ="Song Library", bg="LightSteelBlue4",
+                       font= ('Arial 20'), command = pu_song_library)
+song_lib_b.place(x=15,y=80)
+
+playlist_lib_b = tk.Button(pm, text ="Playlist Library", bg="LightSteelBlue4",
+                       font= ('Arial 20'), command = pu_playlist_library)
+playlist_lib_b.place(x=15,y=160)
+
+playlist_lib_b = tk.Button(pm, text ="Save", bg="LightSteelBlue4",
+                       font= ('Arial 15'), command = save_data)
+playlist_lib_b.place(x=25,y=400)
+ 
+
+pm.mainloop()
+    
+    
+    
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
